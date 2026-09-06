@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Отчёт по продажам</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Учёт продаж</h1>
+      <nav>
+        <a href="/">Добавить</a>
+        <a href="/report" class="active">Отчёт</a>
+      </nav>
+    </header>
+
+    <section class="stats">
+      <div class="stat-card"><span>Всего продаж</span><strong id="totalCount">0</strong></div>
+      <div class="stat-card"><span>Общая сумма</span><strong id="totalSum">0 ₽</strong></div>
+      <div class="stat-card"><span>Средний чек</span><strong id="avgCheck">0 ₽</strong></div>
+      <div class="stat-card"><span>Товаров в каталоге</span><strong id="uniqueProducts">0</strong></div>
+    </section>
+
+    <section>
+      <h2>Все продажи</h2>
+      <table id="salesTable">
+        <thead>
+          <tr>
+            <th>Дата</th><th>Товар</th><th>Кол-во</th>
+            <th>Цена</th><th>Сумма</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="emptyMsg" class="empty">Пока нет продаж. <a href="/">Добавить первую →</a></p>
+    </section>
+
+    <button class="danger" id="clearBtn">🗑 Очистить все данные</button>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    renderReport();
+
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+      if (!confirm('Удалить все продажи? Это действие нельзя отменить.')) return;
+      await fetch('/api/sales', { method: 'DELETE' });
+      renderReport();
+    });
+  </script>
+</body>
+</html>

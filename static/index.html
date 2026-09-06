@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Учёт продаж S7</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>✈️ Учёт продаж S7</h1>
+      <p>Система учёта дополнительных услуг</p>
+      <nav>
+        <a href="/" class="active">Главная</a>
+        <a href="/report">Отчёт</a>
+      </nav>
+    </header>
+
+    <form id="salesForm" class="sales-form">
+      <div id="salesContainer">
+        <!-- Строки продаж будут добавляться динамически -->
+      </div>
+
+      <button type="button" class="add-row-btn" id="addRowBtn">
+        + Добавить ещё продажу
+      </button>
+
+      <button type="submit" class="submit-btn" id="submitBtn" disabled>
+        Внести в отчёт
+      </button>
+    </form>
+
+    <section class="recent">
+      <h2>Последние продажи</h2>
+      <ul id="recentList"></ul>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    addSaleRow(); // Добавляем первую строку при загрузке
+    renderRecent();
+  </script>
+</body>
+</html>
