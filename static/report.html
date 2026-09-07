@@ -2,52 +2,157 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Отчёт по продажам</title>
+  <title>Отчёт — S7</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>📊 Учёт продаж</h1>
+      <h1>✈️ Учёт продаж S7</h1>
+      <p>Отчёт по дополнительным услугам</p>
       <nav>
-        <a href="/">Добавить</a>
+        <a href="/">Главная</a>
         <a href="/report" class="active">Отчёт</a>
       </nav>
     </header>
 
+    <!-- Карточки статистики -->
     <section class="stats">
-      <div class="stat-card"><span>Всего продаж</span><strong id="totalCount">0</strong></div>
-      <div class="stat-card"><span>Общая сумма</span><strong id="totalSum">0 ₽</strong></div>
-      <div class="stat-card"><span>Средний чек</span><strong id="avgCheck">0 ₽</strong></div>
-      <div class="stat-card"><span>Товаров в каталоге</span><strong id="uniqueProducts">0</strong></div>
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value" id="totalCount">0</div>
+        <div class="stat-label">Всего продаж</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✈️</div>
+        <div class="stat-value" id="uniqueFlights">0</div>
+        <div class="stat-label">Уникальных рейсов</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎁</div>
+        <div class="stat-value" id="uniqueServices">0</div>
+        <div class="stat-label">Видов услуг</div>
+      </div>
     </section>
 
-    <section>
-      <h2>Все продажи</h2>
-      <table id="salesTable">
-        <thead>
-          <tr>
-            <th>Дата</th><th>Товар</th><th>Кол-во</th>
-            <th>Цена</th><th>Сумма</th><th></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <p id="emptyMsg" class="empty">Пока нет продаж. <a href="/">Добавить первую →</a></p>
+    <!-- Таблица всех продаж -->
+    <section class="report-section">
+      <div class="section-header">
+        <h2>Все продажи</h2>
+        <button class="danger-btn" id="clearBtn">🗑 Очистить все данные</button>
+      </div>
+      
+      <div id="salesContainer">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>Пока нет продаж</p>
+          <a href="/" class="btn-primary">Добавить первую продажу →</a>
+        </div>
+      </div>
     </section>
-
-    <button class="danger" id="clearBtn">🗑 Очистить все данные</button>
   </div>
 
-  <script src="/static/app.js"></script>
   <script>
-    renderReport();
+    const formatDate = (iso) => {
+      const date = new Date(iso);
+      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
 
+    async function renderReport() {
+      try {
+        const [salesRes, statsRes] = await Promise.all([
+          fetch('/api/sales'),
+          fetch('/api/stats')
+        ]);
+
+        const sales = await salesRes.json();
+        const stats = await statsRes.json();
+
+        // Обновляем статистику
+        document.getElementById('totalCount').textContent = stats.total_count;
+        document.getElementById('uniqueFlights').textContent = stats.unique_flights;
+        document.getElementById('uniqueServices').textContent = stats.unique_services;
+
+        const container = document.getElementById('salesContainer');
+
+        if (!sales.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              <p>Пока нет продаж</p>
+              <a href="/" class="btn-primary">Добавить первую продажу →</a>
+            </div>
+          `;
+          return;
+        }
+
+        // Группируем по рейсам для наглядности
+        const byFlight = {};
+        sales.forEach(sale => {
+          if (!byFlight[sale.flight]) {
+            byFlight[sale.flight] = [];
+          }
+          byFlight[sale.flight].push(sale);
+        });
+
+        let html = '<div class="sales-list">';
+        
+        Object.entries(byFlight).forEach(([flight, items]) => {
+          html += `
+            <div class="flight-group">
+              <div class="flight-header">
+                <span class="flight-number">Рейс ${flight}</span>
+                <span class="flight-count">${items.length} продаж</span>
+              </div>
+              <div class="flight-items">
+          `;
+
+          items.forEach(sale => {
+            html += `
+              <div class="sale-item">
+                <div class="sale-info">
+                  <span class="sale-service">${sale.service}</span>
+                  <span class="sale-date">${formatDate(sale.date)}</span>
+                </div>
+                <div class="sale-quantity">× ${sale.quantity}</div>
+              </div>
+            `;
+          });
+
+          html += `
+              </div>
+            </div>
+          `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+      } catch (error) {
+        console.error('Ошибка загрузки:', error);
+      }
+    }
+
+    // Очистка всех данных
     document.getElementById('clearBtn').addEventListener('click', async () => {
-      if (!confirm('Удалить все продажи? Это действие нельзя отменить.')) return;
-      await fetch('/api/sales', { method: 'DELETE' });
-      renderReport();
+      if (!confirm('️ Вы уверены, что хотите удалить ВСЕ продажи?\n\nЭто действие нельзя отменить!')) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/sales', { method: 'DELETE' });
+        if (res.ok) {
+          renderReport();
+        } else {
+          alert('Ошибка при удалении');
+        }
+      } catch (error) {
+        alert('Ошибка: ' + error.message);
+      }
     });
+
+    // Загружаем данные при открытии страницы
+    renderReport();
   </script>
 </body>
 </html>

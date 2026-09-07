@@ -1,23 +1,22 @@
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field, ConfigDict
+from datetime import date
 
 class SaleCreate(BaseModel):
     flight: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
     service: str = Field(..., min_length=1)
     quantity: int = Field(..., gt=0)
-    date: str  # Принимаем как строку "YYYY-MM-DD"
-
+    agent: str = Field(..., min_length=1)  # <-- ДОЛЖНО БЫТЬ ЗДЕСЬ
+    date: date
 
 class SaleOut(BaseModel):
     id: int
     flight: str
     service: str
     quantity: int
-    date: str  # Возвращаем как строку
+    agent: str  # <-- И ЗДЕСЬ
+    date: date
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True, coerce_numbers_to_str=True)
 
 class Stats(BaseModel):
     total_count: int

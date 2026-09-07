@@ -1,10 +1,15 @@
-const formatMoney = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' ₽';
 const formatDate = (iso) => new Date(iso).toLocaleDateString('ru-RU');
-
+const MAX_SALES = 5; // Максимальное количество строк
 let rowCounter = 0;
 
-// ===== Добавление строки продажи =====
 function addSaleRow() {
+  // Проверяем максимальное количество
+  const currentRows = document.querySelectorAll('.sale-row').length;
+  if (currentRows >= MAX_SALES) {
+    alert(`Можно добавить максимум ${MAX_SALES} продаж`);
+    return;
+  }
+
   rowCounter++;
   const container = document.getElementById('salesContainer');
   const row = document.createElement('div');
@@ -19,38 +24,53 @@ function addSaleRow() {
     <div class="form-grid">
       <div class="form-field">
         <label>Рейс</label>
-        <input type="text" name="flight" maxlength="4" pattern="\\d{4}" 
+        <input type="text" name="flight" maxlength="4" pattern="\\d{4}"
                placeholder="1234" required oninput="validateForm()">
       </div>
       <div class="form-field">
         <label>Дата</label>
-        <input type="date" name="date" required value="${new Date().toISOString().split('T')[0]}" 
+        <input type="date" name="date" required
+               value="${new Date().toISOString().split('T')[0]}"
                oninput="validateForm()">
       </div>
       <div class="form-field">
         <label>Услуга</label>
         <select name="service" required onchange="validateForm()">
           <option value="">Выберите услугу</option>
-          <option value="X">X</option>
-          <option value="Y">Y</option>
-          <option value="Z">Z</option>
+          <option value="UPGR">UPGR</option>
+          <option value="SLEEP">SLEEP</option>
+          <option value="SEAT">SEAT</option>
+          <option value="EXTRA">EXTRA</option>
         </select>
       </div>
       <div class="form-field">
         <label>Количество</label>
         <input type="number" name="quantity" min="1" value="1" required oninput="validateForm()">
       </div>
+      <div class="form-field">
+        <label>Агент</label>
+        <select name="agent" required onchange="validateForm()">
+          <option value="">Выберите агента</option>
+          <option value="ТРОПИНА">ТРОПИНА</option>
+          <option value="САМАРИНА">САМАРИНА</option>
+          <option value="НАГАБЕДЯН">НАГАБЕДЯН</option>
+          <option value="ГОЛУБЫХ">ГОЛУБЫХ</option>
+          <option value="ДЕМЕНТЬЕВ">ДЕМЕНТЬЕВ</option>
+          <option value="ТИМОФЕЕВ">ТИМОФЕЕВ</option>
+          <option value="БРАГИН">БРАГИН</option>
+          <option value="ХАИРОВ">ХАИРОВ</option>
+        </select>
+      </div>
     </div>
   `;
 
   container.appendChild(row);
   validateForm();
+  updateAddButton(); // Обновляем состояние кнопки добавления
 }
 
-// ===== Удаление строки =====
 function removeSaleRow(btn) {
-  const row = btn.closest('.sale-row');
-  row.remove();
+  btn.closest('.sale-row').remove();
   
   // Обновляем нумерацию
   const rows = document.querySelectorAll('.sale-row');
@@ -59,36 +79,41 @@ function removeSaleRow(btn) {
   });
   
   validateForm();
+  updateAddButton(); // Показываем кнопку добавления, если стало меньше 5
 }
 
-// ===== Валидация формы =====
+function updateAddButton() {
+  const currentRows = document.querySelectorAll('.sale-row').length;
+  const addBtn = document.getElementById('addRowBtn');
+  
+  if (currentRows >= MAX_SALES) {
+    addBtn.style.display = 'none'; // Скрываем кнопку, если достигли лимита
+  } else {
+    addBtn.style.display = 'block'; // Показываем кнопку
+  }
+}
+
 function validateForm() {
   const rows = document.querySelectorAll('.sale-row');
   const submitBtn = document.getElementById('submitBtn');
-  
-  let allValid = true;
-  
+
+  let allValid = rows.length > 0;
+
   rows.forEach(row => {
     const flight = row.querySelector('input[name="flight"]').value.trim();
     const date = row.querySelector('input[name="date"]').value;
     const service = row.querySelector('select[name="service"]').value;
+    const agent = row.querySelector('select[name="agent"]').value;
     const quantity = row.querySelector('input[name="quantity"]').value;
-    
-    // Проверка рейса (ровно 4 цифры)
-    if (!/^\d{4}$/.test(flight)) {
-      allValid = false;
-    }
-    
-    // Проверка остальных полей
-    if (!date || !service || !quantity || +quantity < 1) {
-      allValid = false;
-    }
+
+    if (!/^\d{4}$/.test(flight)) allValid = false;
+    if (!date || !service || !agent || !quantity || +quantity < 1) allValid = false;
   });
-  
+
   submitBtn.disabled = !allValid;
 }
 
-// ===== Отправка формы =====
+// Обработчик отправки формы
 document.getElementById('salesForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -100,11 +125,10 @@ document.getElementById('salesForm').addEventListener('submit', async (e) => {
       flight: row.querySelector('input[name="flight"]').value.trim(),
       date: row.querySelector('input[name="date"]').value,
       service: row.querySelector('select[name="service"]').value,
+      agent: row.querySelector('select[name="agent"]').value,
       quantity: +row.querySelector('input[name="quantity"]').value,
     });
   });
-
-  console.log('📤 Отправляем данные:', sales);
 
   try {
     const res = await fetch('/api/sales', {
@@ -115,24 +139,24 @@ document.getElementById('salesForm').addEventListener('submit', async (e) => {
 
     if (res.ok) {
       const data = await res.json();
-      console.log('✅ Успешно сохранено:', data);
       
-      // Очищаем форму, оставляем одну пустую строку
+      // Очищаем форму и добавляем одну пустую строку
       document.getElementById('salesContainer').innerHTML = '';
       rowCounter = 0;
       addSaleRow();
       renderRecent();
     } else {
       const errorData = await res.json().catch(() => ({}));
-      console.error('❌ Ошибка сервера:', res.status, errorData);
       alert(`Ошибка ${res.status}: ${errorData.detail || 'Неизвестная ошибка'}`);
     }
   } catch (error) {
-    console.error('❌ Ошибка сети:', error);
     alert('Ошибка соединения с сервером: ' + error.message);
   }
 });
-// ===== Последние продажи =====
+
+// Обработчик кнопки "Добавить ещё продажу"
+document.getElementById('addRowBtn').addEventListener('click', addSaleRow);
+
 async function renderRecent() {
   const list = document.getElementById('recentList');
   if (!list) return;
@@ -144,14 +168,21 @@ async function renderRecent() {
     list.innerHTML = '<li class="empty">Пока нет продаж</li>';
     return;
   }
-  
+
   list.innerHTML = sales.map(s => `
     <li>
       <div class="recent-info">
         <span class="recent-flight">Рейс ${s.flight}</span>
-        <span class="recent-details">${s.service} • ${formatDate(s.date)}</span>
+        <span class="recent-details">${s.service} • ${s.agent} • ${formatDate(s.date)}</span>
       </div>
       <span class="recent-quantity">× ${s.quantity}</span>
     </li>
   `).join('');
 }
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+  addSaleRow();
+  renderRecent();
+  updateAddButton();
+});
