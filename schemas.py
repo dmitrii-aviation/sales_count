@@ -1,18 +1,19 @@
 from pydantic import BaseModel, Field
-from datetime import date
-from typing import List
 
 
 class SaleCreate(BaseModel):
-    product: str = Field(..., min_length=1)
+    flight: str = Field(..., min_length=4, max_length=4, pattern=r"^\d{4}$")
+    service: str = Field(..., min_length=1)
     quantity: int = Field(..., gt=0)
-    price: float = Field(..., ge=0)
-    date: date
+    date: str  # Принимаем как строку "YYYY-MM-DD"
 
 
-class SaleOut(SaleCreate):
+class SaleOut(BaseModel):
     id: int
-    total: float
+    flight: str
+    service: str
+    quantity: int
+    date: str  # Возвращаем как строку
 
     class Config:
         from_attributes = True
@@ -20,6 +21,5 @@ class SaleOut(SaleCreate):
 
 class Stats(BaseModel):
     total_count: int
-    total_sum: float
-    avg_check: float
-    unique_products: int
+    unique_flights: int
+    unique_services: int

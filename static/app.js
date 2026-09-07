@@ -91,10 +91,10 @@ function validateForm() {
 // ===== Отправка формы =====
 document.getElementById('salesForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  
+
   const rows = document.querySelectorAll('.sale-row');
   const sales = [];
-  
+
   rows.forEach(row => {
     sales.push({
       flight: row.querySelector('input[name="flight"]').value.trim(),
@@ -103,24 +103,35 @@ document.getElementById('salesForm').addEventListener('submit', async (e) => {
       quantity: +row.querySelector('input[name="quantity"]').value,
     });
   });
-  
-  const res = await fetch('/api/sales', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(sales),
-  });
-  
-  if (res.ok) {
-    // Очищаем форму, оставляем одну пустую строку
-    document.getElementById('salesContainer').innerHTML = '';
-    rowCounter = 0;
-    addSaleRow();
-    renderRecent();
-  } else {
-    alert('Ошибка при сохранении');
+
+  console.log('📤 Отправляем данные:', sales);
+
+  try {
+    const res = await fetch('/api/sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sales),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log('✅ Успешно сохранено:', data);
+      
+      // Очищаем форму, оставляем одну пустую строку
+      document.getElementById('salesContainer').innerHTML = '';
+      rowCounter = 0;
+      addSaleRow();
+      renderRecent();
+    } else {
+      const errorData = await res.json().catch(() => ({}));
+      console.error('❌ Ошибка сервера:', res.status, errorData);
+      alert(`Ошибка ${res.status}: ${errorData.detail || 'Неизвестная ошибка'}`);
+    }
+  } catch (error) {
+    console.error('❌ Ошибка сети:', error);
+    alert('Ошибка соединения с сервером: ' + error.message);
   }
 });
-
 // ===== Последние продажи =====
 async function renderRecent() {
   const list = document.getElementById('recentList');
