@@ -89,12 +89,17 @@ def clear_all_sales(db: Session = Depends(get_db)):
 
 @app.get("/api/stats", response_model=Stats)
 def get_stats(db: Session = Depends(get_db)):
-    total_count = db.query(Sale).count()
+    # Общее количество продаж = сумма всех quantity
+    total_count = db.query(func.sum(Sale.quantity)).scalar() or 0
+    total_quantity = total_count  # то же самое
     unique_flights = db.query(func.count(func.distinct(Sale.flight))).scalar() or 0
     unique_services = db.query(func.count(func.distinct(Sale.service))).scalar() or 0
+    unique_agents = db.query(func.count(func.distinct(Sale.agent))).scalar() or 0
 
     return Stats(
         total_count=total_count,
+        total_quantity=total_quantity,
         unique_flights=unique_flights,
         unique_services=unique_services,
+        unique_agents=unique_agents,
     )

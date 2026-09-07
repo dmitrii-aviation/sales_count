@@ -3,6 +3,17 @@ const formatDate = (iso) => {
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+// Функция разворачивает продажу в отдельные строки по quantity
+function expandSales(sales) {
+  const expanded = [];
+  sales.forEach(sale => {
+    for (let i = 0; i < sale.quantity; i++) {
+      expanded.push({ ...sale, quantity: 1 });
+    }
+  });
+  return expanded;
+}
+
 // ===== Загрузка общей статистики =====
 async function loadStats() {
   try {
@@ -22,16 +33,14 @@ const showReportBtn = document.getElementById('showReportBtn');
 const periodReport = document.getElementById('periodReport');
 const closeReport = document.getElementById('closeReport');
 
-let currentReportType = null; // 'period', 'agent', 'service'
+let currentReportType = null;
 
 function openModal(type) {
   currentReportType = type;
 
-  // Скрываем специфичные поля
   document.getElementById('agentField').style.display = 'none';
   document.getElementById('serviceField').style.display = 'none';
 
-  // Даты по умолчанию — последние 30 дней
   const today = new Date();
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(today.getDate() - 30);
@@ -53,12 +62,10 @@ function openModal(type) {
   modal.style.display = 'block';
 }
 
-// Обработчики карточек
 document.getElementById('salesByPeriodCard').addEventListener('click', () => openModal('period'));
 document.getElementById('salesByAgentCard').addEventListener('click', () => openModal('agent'));
 document.getElementById('salesByServiceCard').addEventListener('click', () => openModal('service'));
 
-// Закрыть модалку
 closeModal.addEventListener('click', () => {
   modal.style.display = 'none';
 });
@@ -112,6 +119,16 @@ showReportBtn.addEventListener('click', async () => {
     const res = await fetch(url);
     const sales = await res.json();
 
+    // Разворачиваем продажи по quantity
+    const expandedSales = expandSales(sales);
+
+    // Сортировка: сначала по дате, потом по агенту
+    expandedSales.sort((a, b) => {
+      const dateCompare = new Date(a.date) - new Date(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      return a.agent.localeCompare(b.agent);
+    });
+
     // Закрыть модалку
     modal.style.display = 'none';
 
@@ -119,22 +136,15 @@ showReportBtn.addEventListener('click', async () => {
     periodReport.style.display = 'block';
     document.getElementById('reportTitle').textContent = reportTitle;
     document.getElementById('periodDates').textContent = `${formatDate(startDate)} — ${formatDate(endDate)}`;
-    document.getElementById('totalSalesCount').textContent = sales.length;
+    document.getElementById('totalSalesCount').textContent = expandedSales.length;
     document.getElementById('totalLabel').textContent = totalLabel;
-
-    // Сортировка: сначала по дате, потом по агенту
-    sales.sort((a, b) => {
-      const dateCompare = new Date(a.date) - new Date(b.date);
-      if (dateCompare !== 0) return dateCompare;
-      return a.agent.localeCompare(b.agent);
-    });
 
     // Отобразить продажи
     const salesList = document.getElementById('periodSalesList');
-    if (sales.length === 0) {
+    if (expandedSales.length === 0) {
       salesList.innerHTML = '<div class="empty-state"><p>Нет продаж за выбранный период</p></div>';
     } else {
-      salesList.innerHTML = sales.map(sale => `
+      salesList.innerHTML = expandedSales.map(sale => `
         <div class="sale-row-compact">
           <span class="sale-field sale-date">${formatDate(sale.date)}</span>
           <span class="sale-divider">•</span>
@@ -154,7 +164,6 @@ showReportBtn.addEventListener('click', async () => {
   }
 });
 
-// Закрыть отчёт
 closeReport.addEventListener('click', () => {
   periodReport.style.display = 'none';
 });
@@ -178,7 +187,10 @@ async function loadAllSales() {
       return;
     }
 
-    // Группировка по рейсам
+    // Разворачиваем и считаем общее количество
+    const expandedSales = expandSales(sales);
+
+    // Группировка по рейсам (используем оригинальные записи для группировки)
     const byFlight = {};
     sales.forEach(sale => {
       if (!byFlight[sale.flight]) {
@@ -190,27 +202,33 @@ async function loadAllSales() {
     let html = '<div class="sales-list">';
 
     Object.entries(byFlight).forEach(([flight, items]) => {
+      // Считаем количество для этого рейса (сумма quantity)
+      const flightCount = items.reduce((sum, s) => sum + s.quantity, 0);
+
       html += `
         <div class="flight-group">
           <div class="flight-header">
             <span class="flight-number">Рейс ${flight}</span>
-            <span class="flight-count">${items.length} продаж</span>
+            <span class="flight-count">${flightCount} продаж</span>
           </div>
           <div class="flight-items">
       `;
 
+      // Разворачиваем каждую запись по quantity
       items.forEach(sale => {
-        html += `
-          <div class="sale-row-compact">
-            <span class="sale-field sale-date">${formatDate(sale.date)}</span>
-            <span class="sale-divider">•</span>
-            <span class="sale-field sale-service">${sale.service}</span>
-            <span class="sale-divider">•</span>
-            <span class="sale-field sale-quantity">× ${sale.quantity}</span>
-            <span class="sale-divider">•</span>
-            <span class="sale-field sale-agent">${sale.agent}</span>
-          </div>
-        `;
+        for (let i = 0; i < sale.quantity; i++) {
+          html += `
+            <div class="sale-row-compact">
+              <span class="sale-field sale-date">${formatDate(sale.date)}</span>
+              <span class="sale-divider">•</span>
+              <span class="sale-field sale-service">${sale.service}</span>
+              <span class="sale-divider">•</span>
+              <span class="sale-field sale-quantity">× 1</span>
+              <span class="sale-divider">•</span>
+              <span class="sale-field sale-agent">${sale.agent}</span>
+            </div>
+          `;
+        }
       });
 
       html += `
@@ -229,7 +247,7 @@ async function loadAllSales() {
 
 // ===== Очистка всех данных =====
 document.getElementById('clearBtn').addEventListener('click', async () => {
-  if (!confirm('⚠️ Вы уверены, что хотите удалить ВСЕ продажи?\n\nЭто действие нельзя отменить!')) {
+  if (!confirm('️ Вы уверены, что хотите удалить ВСЕ продажи?\n\nЭто действие нельзя отменить!')) {
     return;
   }
 
