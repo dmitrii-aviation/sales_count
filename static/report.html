@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Отчёт — S7</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>✈️ Учёт продаж S7</h1>
+      <h1>️ Учёт продаж S7</h1>
       <p>Отчёт по дополнительным услугам</p>
       <nav>
         <a href="/">Главная</a>
@@ -18,30 +18,90 @@
 
     <!-- Карточки статистики -->
     <section class="stats">
-      <div class="stat-card">
+      <div class="stat-card clickable" id="salesByPeriodCard">
         <div class="stat-icon">📦</div>
-        <div class="stat-value" id="totalCount">0</div>
-        <div class="stat-label">Всего продаж</div>
+        <div class="stat-label">Продажи за период</div>
+        <div class="stat-hint">Нажмите для выбора дат</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">✈️</div>
-        <div class="stat-value" id="uniqueFlights">0</div>
-        <div class="stat-label">Уникальных рейсов</div>
+
+      <div class="stat-card clickable" id="salesByAgentCard">
+        <div class="stat-icon">👤</div>
+        <div class="stat-label">Выгрузка по агенту</div>
+        <div class="stat-hint">Нажмите для выбора</div>
       </div>
-      <div class="stat-card">
+
+      <div class="stat-card clickable" id="salesByServiceCard">
         <div class="stat-icon">🎁</div>
-        <div class="stat-value" id="uniqueServices">0</div>
-        <div class="stat-label">Видов услуг</div>
+        <div class="stat-label">Выгрузка по услугам</div>
+        <div class="stat-hint">Нажмите для выбора</div>
       </div>
     </section>
 
-    <!-- Таблица всех продаж -->
+    <!-- Универсальная модалка -->
+    <div id="dateModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" id="closeModal">&times;</span>
+        <h2 id="modalTitle">Выберите период</h2>
+        <div class="date-inputs">
+          <div class="form-field">
+            <label>Дата начала</label>
+            <input type="date" id="startDate" required>
+          </div>
+          <div class="form-field">
+            <label>Дата окончания</label>
+            <input type="date" id="endDate" required>
+          </div>
+        </div>
+        <div class="form-field" id="agentField" style="display:none">
+          <label>Агент</label>
+          <select id="filterAgent">
+            <option value="">Выберите агента</option>
+            <option value="ТРОПИНА">ТРОПИНА</option>
+            <option value="САМАРИНА">САМАРИНА</option>
+            <option value="НАГАБЕДЯН">НАГАБЕДЯН</option>
+            <option value="ГОЛУБЫХ">ГОЛУБЫХ</option>
+            <option value="ДЕМЕНТЬЕВ">ДЕМЕНТЬЕВ</option>
+            <option value="ТИМОФЕЕВ">ТИМОФЕЕВ</option>
+            <option value="БРАГИН">БРАГИН</option>
+            <option value="ХАИРОВ">ХАИРОВ</option>
+          </select>
+        </div>
+        <div class="form-field" id="serviceField" style="display:none">
+          <label>Услуга</label>
+          <select id="filterService">
+            <option value="">Выберите услугу</option>
+            <option value="UPGR">UPGR</option>
+            <option value="SLEEP">SLEEP</option>
+            <option value="SEAT">SEAT</option>
+            <option value="EXTRA">EXTRA</option>
+          </select>
+        </div>
+        <button class="submit-btn" id="showReportBtn">Показать отчёт</button>
+      </div>
+    </div>
+
+    <!-- Блок отчёта (универсальный) -->
+    <div id="periodReport" class="period-report" style="display: none;">
+      <div class="report-header">
+        <h2 id="reportTitle">Отчёт за период</h2>
+        <button class="close-report-btn" id="closeReport">&times;</button>
+      </div>
+      <div class="period-info">
+        <span id="periodDates"></span>
+      </div>
+      <div class="total-sales-display">
+        <div class="total-number" id="totalSalesCount">0</div>
+        <div class="total-label" id="totalLabel">продаж</div>
+      </div>
+      <div class="sales-list" id="periodSalesList"></div>
+    </div>
+
+    <!-- Все продажи -->
     <section class="report-section">
       <div class="section-header">
         <h2>Все продажи</h2>
         <button class="danger-btn" id="clearBtn">🗑 Очистить все данные</button>
       </div>
-      
       <div id="salesContainer">
         <div class="empty-state">
           <div class="empty-icon">📭</div>
@@ -52,107 +112,6 @@
     </section>
   </div>
 
-  <script>
-    const formatDate = (iso) => {
-      const date = new Date(iso);
-      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    };
-
-    async function renderReport() {
-      try {
-        const [salesRes, statsRes] = await Promise.all([
-          fetch('/api/sales'),
-          fetch('/api/stats')
-        ]);
-
-        const sales = await salesRes.json();
-        const stats = await statsRes.json();
-
-        // Обновляем статистику
-        document.getElementById('totalCount').textContent = stats.total_count;
-        document.getElementById('uniqueFlights').textContent = stats.unique_flights;
-        document.getElementById('uniqueServices').textContent = stats.unique_services;
-
-        const container = document.getElementById('salesContainer');
-
-        if (!sales.length) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <div class="empty-icon">📭</div>
-              <p>Пока нет продаж</p>
-              <a href="/" class="btn-primary">Добавить первую продажу →</a>
-            </div>
-          `;
-          return;
-        }
-
-        // Группируем по рейсам для наглядности
-        const byFlight = {};
-        sales.forEach(sale => {
-          if (!byFlight[sale.flight]) {
-            byFlight[sale.flight] = [];
-          }
-          byFlight[sale.flight].push(sale);
-        });
-
-        let html = '<div class="sales-list">';
-        
-        Object.entries(byFlight).forEach(([flight, items]) => {
-          html += `
-            <div class="flight-group">
-              <div class="flight-header">
-                <span class="flight-number">Рейс ${flight}</span>
-                <span class="flight-count">${items.length} продаж</span>
-              </div>
-              <div class="flight-items">
-          `;
-
-          items.forEach(sale => {
-            html += `
-              <div class="sale-item">
-                <div class="sale-info">
-                  <span class="sale-service">${sale.service}</span>
-                  <span class="sale-date">${formatDate(sale.date)}</span>
-                </div>
-                <div class="sale-quantity">× ${sale.quantity}</div>
-              </div>
-            `;
-          });
-
-          html += `
-              </div>
-            </div>
-          `;
-        });
-
-        html += '</div>';
-        container.innerHTML = html;
-
-      } catch (error) {
-        console.error('Ошибка загрузки:', error);
-      }
-    }
-
-    // Очистка всех данных
-    document.getElementById('clearBtn').addEventListener('click', async () => {
-      if (!confirm('️ Вы уверены, что хотите удалить ВСЕ продажи?\n\nЭто действие нельзя отменить!')) {
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/sales', { method: 'DELETE' });
-        if (res.ok) {
-          renderReport();
-        } else {
-          alert('Ошибка при удалении');
-        }
-      } catch (error) {
-        alert('Ошибка: ' + error.message);
-      }
-    });
-
-    // Загружаем данные при открытии страницы
-    renderReport();
-  </script>
+  <script src="/static/report.js?v=3"></script>
 </body>
 </html>

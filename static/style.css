@@ -482,3 +482,621 @@ nav a.active, nav a:hover {
     font-size: 2rem;
   }
 }
+/* ===== Кликабельная карточка ===== */
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(109, 32, 119, 0.2);
+  border-color: var(--s7-purple);
+}
+
+.stat-hint {
+  color: var(--s7-purple);
+  font-size: 0.85rem;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ===== Модальное окно ===== */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: var(--white);
+  margin: 10% auto;
+  padding: 32px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.close-btn {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  font-size: 2rem;
+  color: var(--gray);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--s7-purple);
+}
+
+.modal-content h2 {
+  color: var(--s7-purple);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.date-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ===== Отчёт за период ===== */
+.period-report {
+  background: var(--white);
+  border: 2px solid var(--gray-light);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+  animation: slideDown 0.5s;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.report-header h2 {
+  color: var(--s7-purple);
+  margin: 0;
+}
+
+.close-report-btn {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: var(--gray);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-report-btn:hover {
+  color: var(--s7-purple);
+}
+
+.period-info {
+  text-align: center;
+  color: var(--gray);
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+}
+
+.total-sales-display {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, var(--s7-green) 0%, var(--s7-purple) 100%);
+  border-radius: 16px;
+  margin-bottom: 32px;
+}
+
+.total-number {
+  font-size: 5rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+
+.total-label {
+  font-size: 1.5rem;
+  color: var(--white);
+  opacity: 0.9;
+}
+
+/* ===== Элемент продажи ===== */
+.sale-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--gray-light);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  transition: transform 0.2s;
+}
+
+.sale-item:hover {
+  transform: translateX(4px);
+}
+
+.sale-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sale-flight {
+  font-weight: 700;
+  color: var(--s7-green);
+  font-size: 1.1rem;
+}
+
+.sale-service {
+  font-weight: 600;
+  color: var(--s7-purple);
+  font-size: 1rem;
+}
+
+.sale-agent {
+  color: var(--gray-dark);
+  font-size: 0.95rem;
+}
+
+.sale-date {
+  color: var(--gray);
+  font-size: 0.9rem;
+}
+
+.sale-quantity {
+  background: var(--s7-purple);
+  color: var(--white);
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 640px) {
+  .date-inputs {
+    grid-template-columns: 1fr;
+  }
+  
+  .total-number {
+    font-size: 3.5rem;
+  }
+  
+  .sale-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+/* ===== Компактная строка продажи ===== */
+.sale-row-compact {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: var(--gray-light);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sale-row-compact:hover {
+  background: #eef2ff;
+}
+
+.sale-field {
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.sale-divider {
+  color: #d1d5db;
+  font-size: 0.9rem;
+  margin: 0 4px;
+}
+
+.sale-row-compact .sale-date {
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.sale-row-compact .sale-flight {
+  color: var(--s7-green);
+  font-weight: 700;
+}
+
+.sale-row-compact .sale-service {
+  color: var(--s7-purple);
+  font-weight: 600;
+}
+
+.sale-row-compact .sale-quantity {
+  background: var(--s7-purple);
+  color: var(--white);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.sale-row-compact .sale-agent {
+  color: var(--gray-dark);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .sale-row-compact {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 16px;
+  }
+  
+  .sale-divider {
+    display: none;
+  }
+}
+/* ===== Кликабельные карточки ===== */
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(109, 32, 119, 0.2);
+  border-color: var(--s7-purple);
+}
+
+.stat-hint {
+  color: var(--s7-purple);
+  font-size: 0.85rem;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ===== Модальное окно ===== */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background: var(--white);
+  margin: 10% auto;
+  padding: 32px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.close-btn {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  font-size: 2rem;
+  color: var(--gray);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--s7-purple);
+}
+
+.modal-content h2 {
+  color: var(--s7-purple);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.date-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ===== Отчёт за период ===== */
+.period-report {
+  background: var(--white);
+  border: 2px solid var(--gray-light);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+  animation: slideDown 0.5s;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.report-header h2 {
+  color: var(--s7-purple);
+  margin: 0;
+}
+
+.close-report-btn {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: var(--gray);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-report-btn:hover {
+  color: var(--s7-purple);
+}
+
+.period-info {
+  text-align: center;
+  color: var(--gray);
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+}
+
+.total-sales-display {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, var(--s7-green) 0%, var(--s7-purple) 100%);
+  border-radius: 16px;
+  margin-bottom: 32px;
+}
+
+.total-number {
+  font-size: 5rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+
+.total-label {
+  font-size: 1.5rem;
+  color: var(--white);
+  opacity: 0.9;
+}
+
+/* ===== Компактная строка продажи ===== */
+.sale-row-compact {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: var(--gray-light);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sale-row-compact:hover {
+  background: #eef2ff;
+}
+
+.sale-field {
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.sale-divider {
+  color: #d1d5db;
+  font-size: 0.9rem;
+  margin: 0 4px;
+}
+
+.sale-row-compact .sale-date {
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.sale-row-compact .sale-flight {
+  color: var(--s7-green);
+  font-weight: 700;
+}
+
+.sale-row-compact .sale-service {
+  color: var(--s7-purple);
+  font-weight: 600;
+}
+
+.sale-row-compact .sale-quantity {
+  background: var(--s7-purple);
+  color: var(--white);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.sale-row-compact .sale-agent {
+  color: var(--gray-dark);
+  font-weight: 500;
+}
+
+/* ===== Группировка по рейсам ===== */
+.flight-group {
+  background: var(--gray-light);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.flight-header {
+  background: var(--s7-purple);
+  color: var(--white);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flight-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.flight-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.flight-items {
+  padding: 16px 20px;
+}
+
+/* ===== Пустое состояние ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  color: var(--gray);
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+}
+
+.btn-primary {
+  display: inline-block;
+  background: var(--s7-green);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--s7-green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 158, 79, 0.3);
+}
+
+/* ===== Кнопка очистки ===== */
+.danger-btn {
+  background: transparent;
+  border: 2px solid #dc2626;
+  color: #dc2626;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.danger-btn:hover {
+  background: #dc2626;
+  color: var(--white);
+}
+
+.report-section {
+  background: var(--white);
+  border: 2px solid var(--gray-light);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.section-header h2 {
+  color: var(--s7-purple);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 640px) {
+  .date-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .total-number {
+    font-size: 3.5rem;
+  }
+
+  .sale-row-compact {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 16px;
+  }
+
+  .sale-divider {
+    display: none;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .danger-btn {
+    width: 100%;
+  }
+}

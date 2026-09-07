@@ -25,15 +25,33 @@ def report():
         return f.read()
 
 @app.get("/api/sales", response_model=list[SaleOut])
-def get_sales(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_sales(
+    skip: int = 0,
+    limit: int = 100,
+    start_date: str = None,
+    end_date: str = None,
+    agent: str = None,
+    service: str = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Sale)
+
+    if start_date:
+        query = query.filter(Sale.date >= start_date)
+    if end_date:
+        query = query.filter(Sale.date <= end_date)
+    if agent:
+        query = query.filter(Sale.agent == agent)
+    if service:
+        query = query.filter(Sale.service == service)
+
     return (
-        db.query(Sale)
+        query
         .order_by(Sale.date.desc(), Sale.id.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
-
 @app.post("/api/sales", response_model=list[SaleOut], status_code=201)
 def create_sales(sales: list[SaleCreate], db: Session = Depends(get_db)):
     db_sales = []
