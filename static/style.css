@@ -1100,3 +1100,26 @@ nav a.active, nav a:hover {
     width: 100%;
   }
 }
+.delete-sale-btn {
+  background: #fee2e2;
+  border: none;
+  color: #dc2626;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.delete-sale-btn:hover {
+  background: #dc2626;
+  color: var(--white);
+  transform: scale(1.1);
+}

@@ -3,7 +3,6 @@ const formatDate = (iso) => {
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// Функция разворачивает продажу в отдельные строки по quantity
 function expandSales(sales) {
   const expanded = [];
   sales.forEach(sale => {
@@ -14,7 +13,6 @@ function expandSales(sales) {
   return expanded;
 }
 
-// ===== Загрузка общей статистики =====
 async function loadStats() {
   try {
     const res = await fetch('/api/stats');
@@ -26,7 +24,6 @@ async function loadStats() {
   }
 }
 
-// ===== Универсальная модалка =====
 const modal = document.getElementById('dateModal');
 const closeModal = document.getElementById('closeModal');
 const showReportBtn = document.getElementById('showReportBtn');
@@ -76,7 +73,6 @@ window.addEventListener('click', (e) => {
   }
 });
 
-// Показать отчёт
 showReportBtn.addEventListener('click', async () => {
   const startDate = document.getElementById('startDate').value;
   const endDate = document.getElementById('endDate').value;
@@ -118,28 +114,21 @@ showReportBtn.addEventListener('click', async () => {
   try {
     const res = await fetch(url);
     const sales = await res.json();
-
-    // Разворачиваем продажи по quantity
     const expandedSales = expandSales(sales);
 
-    // Сортировка: сначала по дате, потом по агенту
     expandedSales.sort((a, b) => {
       const dateCompare = new Date(a.date) - new Date(b.date);
       if (dateCompare !== 0) return dateCompare;
       return a.agent.localeCompare(b.agent);
     });
 
-    // Закрыть модалку
     modal.style.display = 'none';
-
-    // Показать отчёт
     periodReport.style.display = 'block';
     document.getElementById('reportTitle').textContent = reportTitle;
     document.getElementById('periodDates').textContent = `${formatDate(startDate)} — ${formatDate(endDate)}`;
     document.getElementById('totalSalesCount').textContent = expandedSales.length;
     document.getElementById('totalLabel').textContent = totalLabel;
 
-    // Отобразить продажи
     const salesList = document.getElementById('periodSalesList');
     if (expandedSales.length === 0) {
       salesList.innerHTML = '<div class="empty-state"><p>Нет продаж за выбранный период</p></div>';
@@ -168,12 +157,10 @@ closeReport.addEventListener('click', () => {
   periodReport.style.display = 'none';
 });
 
-// ===== Загрузка всех продаж =====
 async function loadAllSales() {
   try {
     const res = await fetch('/api/sales');
     const sales = await res.json();
-
     const container = document.getElementById('salesContainer');
 
     if (!sales.length) {
@@ -187,10 +174,6 @@ async function loadAllSales() {
       return;
     }
 
-    // Разворачиваем и считаем общее количество
-    const expandedSales = expandSales(sales);
-
-    // Группировка по рейсам (используем оригинальные записи для группировки)
     const byFlight = {};
     sales.forEach(sale => {
       if (!byFlight[sale.flight]) {
@@ -202,7 +185,6 @@ async function loadAllSales() {
     let html = '<div class="sales-list">';
 
     Object.entries(byFlight).forEach(([flight, items]) => {
-      // Считаем количество для этого рейса (сумма quantity)
       const flightCount = items.reduce((sum, s) => sum + s.quantity, 0);
 
       html += `
@@ -214,7 +196,6 @@ async function loadAllSales() {
           <div class="flight-items">
       `;
 
-      // Разворачиваем каждую запись по quantity
       items.forEach(sale => {
         for (let i = 0; i < sale.quantity; i++) {
           html += `
@@ -226,6 +207,7 @@ async function loadAllSales() {
               <span class="sale-field sale-quantity">× 1</span>
               <span class="sale-divider">•</span>
               <span class="sale-field sale-agent">${sale.agent}</span>
+              <button class="delete-sale-btn" onclick="deleteSale(${sale.id})" title="Удалить">×</button>
             </div>
           `;
         }
@@ -245,14 +227,13 @@ async function loadAllSales() {
   }
 }
 
-// ===== Очистка всех данных =====
-document.getElementById('clearBtn').addEventListener('click', async () => {
-  if (!confirm('️ Вы уверены, что хотите удалить ВСЕ продажи?\n\nЭто действие нельзя отменить!')) {
+async function deleteSale(saleId) {
+  if (!confirm('Удалить эту продажу?')) {
     return;
   }
 
   try {
-    const res = await fetch('/api/sales', { method: 'DELETE' });
+    const res = await fetch(`/api/sales/${saleId}`, { method: 'DELETE' });
     if (res.ok) {
       loadStats();
       loadAllSales();
@@ -262,8 +243,7 @@ document.getElementById('clearBtn').addEventListener('click', async () => {
   } catch (error) {
     alert('Ошибка: ' + error.message);
   }
-});
+}
 
-// ===== Инициализация =====
 loadStats();
 loadAllSales();

@@ -8,7 +8,7 @@
 <body>
   <div class="container">
     <header>
-      <h1>️ Учёт продаж S7</h1>
+      <h1>✈️ Учёт продаж S7</h1>
       <p>Отчёт по дополнительным услугам</p>
       <nav>
         <a href="/">Главная</a>
@@ -16,7 +16,6 @@
       </nav>
     </header>
 
-    <!-- Карточки статистики -->
     <section class="stats">
       <div class="stat-card clickable" id="salesByPeriodCard">
         <div class="stat-icon">📦</div>
@@ -37,7 +36,6 @@
       </div>
     </section>
 
-    <!-- Универсальная модалка -->
     <div id="dateModal" class="modal">
       <div class="modal-content">
         <span class="close-btn" id="closeModal">&times;</span>
@@ -80,7 +78,6 @@
       </div>
     </div>
 
-    <!-- Блок отчёта (универсальный) -->
     <div id="periodReport" class="period-report" style="display: none;">
       <div class="report-header">
         <h2 id="reportTitle">Отчёт за период</h2>
@@ -96,19 +93,11 @@
       <div class="sales-list" id="periodSalesList"></div>
     </div>
 
-    <!-- Все продажи -->
     <section class="report-section">
       <div class="section-header">
         <h2>Все продажи</h2>
-        <button class="danger-btn" id="clearBtn">🗑 Очистить все данные</button>
       </div>
-      <div id="salesContainer">
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <p>Пока нет продаж</p>
-          <a href="/" class="btn-primary">Добавить первую продажу →</a>
-        </div>
-      </div>
+      <div id="salesContainer"></div>
     </section>
   </div>
 
