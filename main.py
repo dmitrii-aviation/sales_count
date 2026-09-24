@@ -13,15 +13,12 @@ from database import engine, get_db, Base
 from models import Sale, User
 from schemas import SaleCreate, SaleOut, Stats, UserCreate, UserLogin
 
-# Создаём таблицы (включая User)
 Base.metadata.create_all(bind=engine)
 
-# Настройки JWT
 SECRET_KEY = "your-secret-key-change-this-in-production-2026"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 часов
+ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
-# Хеширование паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI(title="Учёт продаж S7")
@@ -29,7 +26,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="static")
 
 
-# ===== Вспомогательные функции =====
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -46,19 +42,19 @@ def create_access_token(data: dict):
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     token = request.cookies.get("access_token")
     if not token:
-        raise HTTPException(status_code=401, detail="Не авторизован")
+        return RedirectResponse(url="/login", status_code=303)
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
-            raise HTTPException(status_code=401, detail="Неверный токен")
+            return RedirectResponse(url="/login", status_code=303)
     except JWTError:
-        raise HTTPException(status_code=401, detail="Неверный токен")
+        return RedirectResponse(url="/login", status_code=303)
     
     user = db.query(User).filter(User.username == username).first()
     if user is None:
-        raise HTTPException(status_code=401, detail="Пользователь не найден")
+        return RedirectResponse(url="/login", status_code=303)
     
     return user
 
@@ -66,15 +62,19 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 # ===== Страницы =====
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request, user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+    if isinstance(user, RedirectResponse):
+        return user
+    return templates.TemplateResponse(request, "index.html", {"user": user})
 
 @app.get("/report", response_class=HTMLResponse)
 def report(request: Request, user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("report.html", {"request": request, "user": user})
+    if isinstance(user, RedirectResponse):
+        return user
+    return templates.TemplateResponse(request, "report.html", {"user": user})
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html")
 
 
 # ===== API: Авторизация =====
@@ -108,8 +108,10 @@ def get_sales(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    if isinstance(user, RedirectResponse):
+        return user
+    
     query = db.query(Sale)
-
     if start_date:
         query = query.filter(Sale.date >= start_date)
     if end_date:
@@ -133,6 +135,9 @@ def create_sales(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    if isinstance(user, RedirectResponse):
+        return user
+    
     db_sales = []
     for sale in sales:
         db_sale = Sale(
@@ -157,7 +162,8 @@ def delete_sale(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    # Удалять может только админ
+    if isinstance(user, RedirectResponse):
+        return user
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Только админ может удалять")
     
@@ -173,6 +179,8 @@ def clear_all_sales(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    if isinstance(user, RedirectResponse):
+        return user
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Только админ может удалять")
     
@@ -186,6 +194,9 @@ def get_stats(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    if isinstance(user, RedirectResponse):
+        return user
+    
     total_count = db.query(func.sum(Sale.quantity)).scalar() or 0
     total_quantity = total_count
     unique_flights = db.query(func.count(func.distinct(Sale.flight))).scalar() or 0
@@ -201,12 +212,14 @@ def get_stats(
     )
 
 
-# ===== API: Управление пользователями (только админ) =====
+# ===== API: Управление пользователями =====
 @app.get("/api/users")
 def get_users(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    if isinstance(user, RedirectResponse):
+        return user
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Только админ")
     
@@ -219,6 +232,8 @@ def create_user(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    if isinstance(user, RedirectResponse):
+        return user
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Только админ")
     
