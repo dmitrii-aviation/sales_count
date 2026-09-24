@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Учёт продаж S7</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=4">
 </head>
 <body>
   <div class="container">
@@ -13,6 +13,7 @@
       <nav>
         <a href="/" class="active">Главная</a>
         <a href="/report">Отчёт</a>
+        <a href="#" onclick="logout()" style="color: #dc2626; margin-left: 10px;">Выйти</a>
       </nav>
     </header>
 
@@ -37,5 +38,11 @@
   </div>
 
   <script src="/static/app.js?v=4"></script>
+  <script>
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+  </script>
 </body>
 </html>

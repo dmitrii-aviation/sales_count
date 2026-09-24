@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Вход — S7 Sales</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 40px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .login-container h1 {
+      text-align: center;
+      color: #6D2077;
+      margin-bottom: 30px;
+    }
+    .login-container .form-field {
+      margin-bottom: 20px;
+    }
+    .login-container label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+    }
+    .login-container input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .login-container input:focus {
+      outline: none;
+      border-color: #6D2077;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: #6D2077;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .login-btn:hover {
+      background: #5a1a63;
+    }
+    .error-message {
+      color: #dc2626;
+      text-align: center;
+      margin-top: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>✈️ Вход в систему</h1>
+    <form id="loginForm">
+      <div class="form-field">
+        <label>Логин</label>
+        <input type="text" id="username" required>
+      </div>
+      <div class="form-field">
+        <label>Пароль</label>
+        <input type="password" id="password" required>
+      </div>
+      <button type="submit" class="login-btn">Войти</button>
+      <div class="error-message" id="errorMsg">Неверный логин или пароль</div>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        if (res.ok) {
+          window.location.href = '/';
+        } else {
+          document.getElementById('errorMsg').style.display = 'block';
+        }
+      } catch (error) {
+        document.getElementById('errorMsg').style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

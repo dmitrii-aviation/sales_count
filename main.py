@@ -1,29 +1,102 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
 
 from database import engine, get_db, Base
-from models import Sale
-from schemas import SaleCreate, SaleOut, Stats
+from models import Sale, User
+from schemas import SaleCreate, SaleOut, Stats, UserCreate, UserLogin
 
-# Создаём таблицы
+# Создаём таблицы (включая User)
 Base.metadata.create_all(bind=engine)
+
+# Настройки JWT
+SECRET_KEY = "your-secret-key-change-this-in-production-2026"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 часов
+
+# Хеширование паролей
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI(title="Учёт продаж S7")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="static")
 
+
+# ===== Вспомогательные функции =====
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def get_current_user(request: Request, db: Session = Depends(get_db)):
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Не авторизован")
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Неверный токен")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+    
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+    
+    return user
+
+
+# ===== Страницы =====
 @app.get("/", response_class=HTMLResponse)
-def index():
-    with open("static/index.html", encoding="utf-8") as f:
-        return f.read()
+def index(request: Request, user: User = Depends(get_current_user)):
+    return templates.TemplateResponse("index.html", {"request": request, "user": user})
 
 @app.get("/report", response_class=HTMLResponse)
-def report():
-    with open("static/report.html", encoding="utf-8") as f:
-        return f.read()
+def report(request: Request, user: User = Depends(get_current_user)):
+    return templates.TemplateResponse("report.html", {"request": request, "user": user})
 
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+# ===== API: Авторизация =====
+@app.post("/api/login")
+def login(user_data: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == user_data.username).first()
+    if not user or not verify_password(user_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Неверный логин или пароль")
+    
+    access_token = create_access_token(data={"sub": user.username})
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(key="access_token", value=access_token, httponly=True, max_age=28800)
+    return response
+
+@app.post("/api/logout")
+def logout():
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie("access_token")
+    return response
+
+
+# ===== API: Продажи =====
 @app.get("/api/sales", response_model=list[SaleOut])
 def get_sales(
     skip: int = 0,
@@ -32,7 +105,8 @@ def get_sales(
     end_date: str = None,
     agent: str = None,
     service: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
 ):
     query = db.query(Sale)
 
@@ -52,15 +126,20 @@ def get_sales(
         .limit(limit)
         .all()
     )
+
 @app.post("/api/sales", response_model=list[SaleOut], status_code=201)
-def create_sales(sales: list[SaleCreate], db: Session = Depends(get_db)):
+def create_sales(
+    sales: list[SaleCreate], 
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
     db_sales = []
     for sale in sales:
         db_sale = Sale(
             flight=str(sale.flight),
             service=sale.service,
-            agent=sale.agent,  
             quantity=sale.quantity,
+            agent=sale.agent,
             date=sale.date,
         )
         db.add(db_sale)
@@ -73,7 +152,15 @@ def create_sales(sales: list[SaleCreate], db: Session = Depends(get_db)):
     return db_sales
 
 @app.delete("/api/sales/{sale_id}")
-def delete_sale(sale_id: int, db: Session = Depends(get_db)):
+def delete_sale(
+    sale_id: int, 
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    # Удалять может только админ
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Только админ может удалять")
+    
     sale = db.query(Sale).filter(Sale.id == sale_id).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Продажа не найдена")
@@ -82,16 +169,25 @@ def delete_sale(sale_id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 @app.delete("/api/sales")
-def clear_all_sales(db: Session = Depends(get_db)):
+def clear_all_sales(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Только админ может удалять")
+    
     db.query(Sale).delete()
     db.commit()
     return {"ok": True}
 
+
 @app.get("/api/stats", response_model=Stats)
-def get_stats(db: Session = Depends(get_db)):
-    # Общее количество продаж = сумма всех quantity
+def get_stats(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
     total_count = db.query(func.sum(Sale.quantity)).scalar() or 0
-    total_quantity = total_count  # то же самое
+    total_quantity = total_count
     unique_flights = db.query(func.count(func.distinct(Sale.flight))).scalar() or 0
     unique_services = db.query(func.count(func.distinct(Sale.service))).scalar() or 0
     unique_agents = db.query(func.count(func.distinct(Sale.agent))).scalar() or 0
@@ -103,3 +199,57 @@ def get_stats(db: Session = Depends(get_db)):
         unique_services=unique_services,
         unique_agents=unique_agents,
     )
+
+
+# ===== API: Управление пользователями (только админ) =====
+@app.get("/api/users")
+def get_users(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Только админ")
+    
+    users = db.query(User).all()
+    return [{"id": u.id, "username": u.username, "role": u.role} for u in users]
+
+@app.post("/api/users")
+def create_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Только админ")
+    
+    existing = db.query(User).filter(User.username == user_data.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Пользователь уже существует")
+    
+    new_user = User(
+        username=user_data.username,
+        hashed_password=get_password_hash(user_data.password),
+        role=user_data.role
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {"id": new_user.id, "username": new_user.username, "role": new_user.role}
+
+
+# ===== Создание админа при первом запуске =====
+def create_initial_admin():
+    db = next(get_db())
+    admin = db.query(User).filter(User.username == "admin").first()
+    if not admin:
+        admin = User(
+            username="admin",
+            hashed_password=get_password_hash("admin123"),
+            role="admin"
+        )
+        db.add(admin)
+        db.commit()
+        print("✅ Создан админ: admin / admin123")
+
+create_initial_admin()
